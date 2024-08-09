@@ -1,29 +1,20 @@
-import { Address, PScriptContext, PaymentCredentials, Script, bool, bs, compile, makeRedeemerValidator, pfn, pBool, data } from "@harmoniclabs/plu-ts";
+import { Address, PScriptContext, ScriptType, Credential, Script, compile, pfn, unit, passert } from "@harmoniclabs/plu-ts";
 
-const minting = pfn([
-  data,
+const contract = pfn([
   PScriptContext.type
-], bool)
-((redeemer, ctx) => {
-  return pBool(true);
+], unit)
+(({ redeemer, tx, purpose }) => {
+  return passert.$(true);
 });
 
-///////////////////////////////////////////////////////////////////
-// ------------------------------------------------------------- //
-// ------------------------- utilities ------------------------- //
-// ------------------------------------------------------------- //
-///////////////////////////////////////////////////////////////////
-
-export const untypedValidator = makeRedeemerValidator(minting);
-
-export const compiledContract = compile(untypedValidator);
+export const compiledContract = compile(contract);
 
 export const script = new Script(
-  "PlutusScriptV2",
+  ScriptType.PlutusV3,
   compiledContract
 );
 
 export const scriptTestnetAddr = new Address(
   "testnet",
-  PaymentCredentials.script(script.hash)
+  Credential.script(script.hash)
 );
