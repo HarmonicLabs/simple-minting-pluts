@@ -1,5 +1,5 @@
 import { BrowserWallet } from "@meshsdk/core";
-import { Value, Address } from "@harmoniclabs/plu-ts";
+import { Value, Address, Tx } from "@harmoniclabs/plu-ts";
 import { BlockfrostPluts } from "@harmoniclabs/blockfrost-pluts";
 import { scriptTestnetAddr, script } from "../../contracts/minting";
 import { toPlutsUtxo } from "./mesh-utils";
@@ -50,5 +50,10 @@ export async function mintNft(wallet: BrowserWallet, projectId: string): Promise
 
   const txStr = await wallet.signTx(unsignedTx.toCbor().toString());
 
-  return await Blockfrost.submitTx(txStr);
+  const txWit = Tx.fromCbor(txStr).witnesses.vkeyWitnesses ?? [];
+  for (const wit of txWit) {
+    unsignedTx.addVKeyWitness(wit);
+  }
+
+  return await Blockfrost.submitTx(unsignedTx);
 }
