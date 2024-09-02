@@ -1,4 +1,4 @@
-import { TxBuilder } from "@harmoniclabs/plu-ts";
+import { TxBuilder, defaultProtocolParameters } from "@harmoniclabs/plu-ts";
 import { BlockfrostPluts } from "@harmoniclabs/blockfrost-pluts";
 
 /**
