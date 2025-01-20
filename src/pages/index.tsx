@@ -1,16 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect, ChangeEvent } from "react";
 import { Container, Box, Text, Button, Input, useToast } from "@chakra-ui/react";
 import { useNetwork, useWallet } from "@meshsdk/react";
 
 import style from "@/styles/Home.module.css";
 import ConnectionHandler from "@/components/ConnectionHandler";
-import { mintNft } from "@/offchain/mintNft";
+import { mintNft } from "@/offchain/mintNft";;
 
 export default function Home() {
   const [blockfrostApiKey, setBlockfrostApiKey] = useState<string>('');
   const {wallet, connected} = useWallet();
   const network = useNetwork();
   const toast = useToast();
+
+  useEffect(() => {
+    setBlockfrostApiKey(window.localStorage.getItem('BLOCKFROST_API_KEY') || '');
+  }, []);
 
   if (typeof network === "number" && network !== 0) {
     return (
@@ -23,6 +27,11 @@ export default function Home() {
         </Container>
       </div>
     )
+  }
+
+  const onChangeBlockfrostApiKey = (e: ChangeEvent<HTMLInputElement>) => {
+    setBlockfrostApiKey(e.target.value);
+    window.localStorage.setItem('BLOCKFROST_API_KEY', e.target.value);
   }
 
   const onMintNft = () => {
@@ -55,7 +64,7 @@ export default function Home() {
             placeholder='Blockfrost API Key'
             size='lg'
             value={blockfrostApiKey}
-            onChange={e => setBlockfrostApiKey(e.target.value)}
+            onChange={onChangeBlockfrostApiKey}
           />
         </Box>
         <Box bg="white" w="100%" p={4}>
