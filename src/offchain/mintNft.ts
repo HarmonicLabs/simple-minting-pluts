@@ -1,34 +1,46 @@
-import { BrowserWallet } from "@meshsdk/core";
+import { BrowserWallet, IWallet } from "@meshsdk/core";
 import { Value, Address, Tx } from "@harmoniclabs/plu-ts";
 import { BlockfrostPluts } from "@harmoniclabs/blockfrost-pluts";
 import { scriptTestnetAddr, script } from "../../contracts/minting";
-import { toPlutsUtxo } from "./mesh-utils";
+import { vkeyWitnessFromSignData } from "./commons";
 import getTxBuilder from "./getTxBuilder";
 
-export async function mintNft(wallet: BrowserWallet, projectId: string): Promise<string> {
+// TOBEREPLACED: by @harmoniclabs/plu-ts-emulator
+import { Emulator } from "../../package";
 
-  const recipient = Address.fromString(
+export async function mintNft(wallet: BrowserWallet | IWallet, provider: Emulator | BlockfrostPluts | null, isEmulator: boolean): Promise<string> {
+
+  if (!provider) {
+    throw new Error("no Emulator/Blockfrost provider");
+  }
+
+  const address = Address.fromString(
     await wallet.getChangeAddress()
   );
 
-  const Blockfrost = new BlockfrostPluts({ projectId });
 
-  const txBuilder = await getTxBuilder(Blockfrost);
-  const myUTxOs = (await wallet.getUtxos()).map(toPlutsUtxo);
-
-  if (myUTxOs.length === 0) {
-    throw new Error("have you requested founds from the faucet?");
+  const txBuilder = await getTxBuilder(provider);
+  const myUTxOs = await provider.getUtxos(address);
+  let utxos = myUTxOs;
+  if (Array.isArray(myUTxOs)) { // Blockfrost case
+    if (myUTxOs.length === 0) {
+      throw new Error("Have you requested funds from the faucet?");
+    }
+    utxos = myUTxOs;
+  }
+  else { // Emulator case
+    utxos = Array.from(myUTxOs.values())
   }
 
-  const utxo = myUTxOs.find(u => u.resolved.value.lovelaces > 15_000_000);
+  const utxo = utxos.find(u => u.resolved.value.lovelaces >= 15_000_000n);
 
-  if (utxo === undefined) {
+  if (!utxo) {
     throw new Error("not enough ada");
   }
 
   const unsignedTx = await txBuilder.buildSync({
     inputs: [{ utxo }],
-    changeAddress: recipient,
+    changeAddress: address,
     collaterals: [utxo],
     collateralReturn: {
       address: utxo.resolved.address,
@@ -37,23 +49,34 @@ export async function mintNft(wallet: BrowserWallet, projectId: string): Promise
     mints: [{
       value: Value.singleAsset(
         scriptTestnetAddr.paymentCreds.hash,
-        Buffer.from('Test Token'),
+        new Uint8Array(Buffer.from('Test Token')),
         1
       ),
       script: {
         inline: script,
         policyId: scriptTestnetAddr.paymentCreds.hash,
-        redeemer: recipient.toData()
+        redeemer: address.toData()
       }
     }]
   });
 
-  const txStr = await wallet.signTx(unsignedTx.toCbor().toString());
+  // Sign the tx body hash
+  const txHashHex = unsignedTx.body.hash.toString();
+  // Build the witness set data
+  const {key, signature} = await wallet.signData(txHashHex, address.toString());
+  const witness = vkeyWitnessFromSignData(key, signature);
 
-  const txWit = Tx.fromCbor(txStr).witnesses.vkeyWitnesses ?? [];
-  for (const wit of txWit) {
-    unsignedTx.addVKeyWitness(wit);
+  // inject it to the unsigned tx
+  unsignedTx.addVKeyWitness(witness);
+
+  const txHash = await provider.submitTx(unsignedTx);
+  console.log("Transaction Hash:", txHash);
+
+  if (isEmulator && "awaitBlock" in provider && "prettyPrintLedgerState" in provider) { // emulator
+    provider.awaitBlock(1);
+    const ledgerState = provider.prettyPrintLedgerState();
+    console.log("Ledger State:", ledgerState);
   }
 
-  return await Blockfrost.submitTx(unsignedTx);
+  return txHash;
 }

@@ -4,17 +4,46 @@ import { useNetwork, useWallet } from "@meshsdk/react";
 
 import style from "@/styles/Home.module.css";
 import ConnectionHandler from "@/components/ConnectionHandler";
-import { mintNft } from "@/offchain/mintNft";;
+import { mintNft } from "@/offchain/mintNft";
+import { Address } from "@harmoniclabs/plu-ts";
+import { BlockfrostPluts } from "@harmoniclabs/blockfrost-pluts";
+
+// TOBEREPLACED: by @harmoniclabs/plu-ts-emulator
+import { Emulator } from "../../package";
+import { initializeEmulator } from "../../package/utils/helper";
 
 export default function Home() {
   const [blockfrostApiKey, setBlockfrostApiKey] = useState<string>('');
+  const [provider, setProvider] = useState<Emulator | BlockfrostPluts | null>(null);
+  const [useEmulator, setUseEmulator] = useState(false);
   const {wallet, connected} = useWallet();
   const network = useNetwork();
   const toast = useToast();
 
   useEffect(() => {
     setBlockfrostApiKey(window.localStorage.getItem('BLOCKFROST_API_KEY') || '');
+    setUseEmulator(process.env.NEXT_PUBLIC_EMULATOR === "true");
   }, []);
+
+  useEffect(() => {
+    if (!wallet) return;
+
+    if (useEmulator) {
+      if (wallet && connected) {
+        (async() => {
+          const walletAddress = Address.fromString(await wallet.getChangeAddress()); // Assuming `wallet.address` is a string
+          // Initialize emulator with UTxOs directly, not using the faucet
+          const addressBalances = new Map<Address, bigint>();
+          addressBalances.set(walletAddress, 15_000_000n);
+          const emulator = initializeEmulator(addressBalances);
+          setProvider(emulator);
+        })()
+      }
+    } else if (blockfrostApiKey) {
+      const provider = new BlockfrostPluts({ projectId: blockfrostApiKey });
+      setProvider(provider);
+    }
+  }, [wallet, connected, useEmulator, blockfrostApiKey]);
 
   if (typeof network === "number" && network !== 0) {
     return (
@@ -35,12 +64,17 @@ export default function Home() {
   }
 
   const onMintNft = () => {
-    mintNft(wallet, blockfrostApiKey)
+    mintNft(wallet, provider, useEmulator)
       // lock transaction created successfully
-      .then(txHash => toast({
-        title: `tx submitted: https://preprod.cardanoscan.io/transaction/${txHash}`,
-        status: "success"
-      }))
+      .then(txHash => {
+        toast({
+          title: `tx submitted: https://preprod.cardanoscan.io/transaction/${txHash}`,
+          status: "success"
+        });
+        if (useEmulator && provider instanceof Emulator) {
+          provider.awaitBlock(1)
+        }
+      })
       // lock transaction failed
       .catch(e => {
         toast({
@@ -54,19 +88,21 @@ export default function Home() {
   return (
     <div className={style.root}>
       <Container maxW="container.sm" py={12} centerContent>
-        <Box bg="white" w="100%" p={4} mb={4}>
-          <Text fontSize="md" mb={4}>
-            In order to run this example you need to provide a Blockfrost API Key<br />
-            More info on <a href="https://blockfrost.io/" target="_blank" style={{color:'#0BC5EA'}}>blockfrost.io</a>
-          </Text>
-          <Input
-            variant='filled'
-            placeholder='Blockfrost API Key'
-            size='lg'
-            value={blockfrostApiKey}
-            onChange={onChangeBlockfrostApiKey}
-          />
-        </Box>
+        {!useEmulator && ( <>
+          <Box bg="white" w="100%" p={4} mb={4}>
+            <Text fontSize="md" mb={4}>
+              In order to run this example you need to provide a Blockfrost API Key<br />
+              More info on <a href="https://blockfrost.io/" target="_blank" style={{color:'#0BC5EA'}}>blockfrost.io</a>
+            </Text>
+            <Input
+              variant='filled'
+              placeholder='Blockfrost API Key'
+              size='lg'
+              value={blockfrostApiKey}
+              onChange={onChangeBlockfrostApiKey}
+            />
+          </Box>
+        </>)}
         <Box bg="white" w="100%" p={4}>
           <ConnectionHandler isDisabled={blockfrostApiKey === ''} />
           {connected && (
