@@ -4,9 +4,7 @@ import { BlockfrostPluts } from "@harmoniclabs/blockfrost-pluts";
 import { scriptTestnetAddr, script } from "../../contracts/minting";
 import { vkeyWitnessFromSignData } from "./commons";
 import getTxBuilder from "./getTxBuilder";
-
-// TOBEREPLACED: by @harmoniclabs/plu-ts-emulator
-import { Emulator } from "../../package";
+import { Emulator } from "@harmoniclabs/pluts-emulator";
 
 export async function mintNft(wallet: BrowserWallet | IWallet, provider: Emulator | BlockfrostPluts | null, isEmulator: boolean): Promise<string> {
 
@@ -72,9 +70,9 @@ export async function mintNft(wallet: BrowserWallet | IWallet, provider: Emulato
   const txHash = await provider.submitTx(unsignedTx);
   console.log("Transaction Hash:", txHash);
 
-  if (isEmulator && "awaitBlock" in provider && "prettyPrintLedgerState" in provider) { // emulator
+  if (isEmulator && provider instanceof Emulator) {
     provider.awaitBlock(1);
-    const ledgerState = provider.prettyPrintLedgerState();
+    const ledgerState = provider.prettyPrintLedgerState(true);
     console.log("Ledger State:", ledgerState);
   }
 

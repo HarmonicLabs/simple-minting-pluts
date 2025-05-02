@@ -7,10 +7,7 @@ import ConnectionHandler from "@/components/ConnectionHandler";
 import { mintNft } from "@/offchain/mintNft";
 import { Address } from "@harmoniclabs/plu-ts";
 import { BlockfrostPluts } from "@harmoniclabs/blockfrost-pluts";
-
-// TOBEREPLACED: by @harmoniclabs/plu-ts-emulator
-import { Emulator } from "../../package";
-import { initializeEmulator } from "../../package/utils/helper";
+import { Emulator, initializeEmulator } from "@harmoniclabs/pluts-emulator";
 
 export default function Home() {
   const [blockfrostApiKey, setBlockfrostApiKey] = useState<string>('');
@@ -35,8 +32,16 @@ export default function Home() {
           // Initialize emulator with UTxOs directly, not using the faucet
           const addressBalances = new Map<Address, bigint>();
           addressBalances.set(walletAddress, 15_000_000n);
-          const emulator = initializeEmulator(addressBalances);
-          setProvider(emulator);
+          try {
+            const emulator = initializeEmulator(addressBalances);
+            setProvider(emulator);
+          } catch (error) {
+            toast({
+              title: "something went wrong",
+              status: "error"
+            });
+            console.error("Error initializing emulator:", error);
+          }
         })()
       }
     } else if (blockfrostApiKey) {
@@ -68,7 +73,7 @@ export default function Home() {
       // lock transaction created successfully
       .then(txHash => {
         toast({
-          title: `tx submitted: https://preprod.cardanoscan.io/transaction/${txHash}`,
+          title: `tx submitted: ${useEmulator ? `${txHash}` : `https://preprod.cardanoscan.io/transaction/${txHash}` } `,
           status: "success"
         });
         if (useEmulator && provider instanceof Emulator) {
