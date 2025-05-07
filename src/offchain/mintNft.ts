@@ -18,18 +18,10 @@ export async function mintNft(wallet: BrowserWallet | IWallet, provider: Emulato
 
 
   const txBuilder = await getTxBuilder(provider);
-  const myUTxOs = await provider.getUtxos(address);
-  let utxos = myUTxOs;
-  if (Array.isArray(myUTxOs)) { // Blockfrost case
-    if (myUTxOs.length === 0) {
-      throw new Error("Have you requested funds from the faucet?");
-    }
-    utxos = myUTxOs;
-  }
-  else { // Emulator case
-    utxos = Array.from(myUTxOs.values())
-  }
-
+  const utxos = await provider.getUtxos(address);
+  if (utxos.length === 0) {
+    throw new Error("Have you requested funds from the faucet?");
+  }  
   const utxo = utxos.find(u => u.resolved.value.lovelaces >= 15_000_000n);
 
   if (!utxo) {

@@ -109,10 +109,10 @@ export default function Home() {
           </Box>
         </>)}
         <Box bg="white" w="100%" p={4}>
-          <ConnectionHandler isDisabled={blockfrostApiKey === ''} />
+          <ConnectionHandler isDisabled={!(useEmulator || blockfrostApiKey !== '')} />
           {connected && (
             <>
-              <Button size="lg" ml={4} colorScheme="teal" isDisabled={blockfrostApiKey === ''} onClick={onMintNft}>Mint NFT</Button>
+              <Button size="lg" ml={4} colorScheme="teal" isDisabled={!(useEmulator || blockfrostApiKey !== '')} onClick={onMintNft}>Mint NFT</Button>
             </>
           )}
         </Box>
