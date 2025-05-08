@@ -20,7 +20,7 @@ export async function mintNft(wallet: BrowserWallet | IWallet, provider: Emulato
   const txBuilder = await getTxBuilder(provider);
   const utxos = await provider.getUtxos(address);
   if (utxos.length === 0) {
-    throw new Error("Have you requested funds from the faucet?");
+    throw new Error(isEmulator ? "Funds not populated to address via Emulator while initialization" : "Have you requested funds from the faucet?");
   }  
   const utxo = utxos.find(u => u.resolved.value.lovelaces >= 15_000_000n);
 
