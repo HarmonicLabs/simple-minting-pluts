@@ -1,6 +1,6 @@
 import { CborArray, CborBytes } from "@harmoniclabs/cbor";
 import { decode } from "cbor";
-import { VKey, VKeyWitness, Signature} from "@harmoniclabs/plu-ts";
+import { VKey, VKeyWitness, Signature} from "@harmoniclabs/buildooor";
 
 /**
  * Converts a hexadecimal string to a `Uint8Array` of bytes.

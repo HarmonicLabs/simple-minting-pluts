@@ -5,7 +5,7 @@ import { useNetwork, useWallet } from "@meshsdk/react";
 import style from "@/styles/Home.module.css";
 import ConnectionHandler from "@/components/ConnectionHandler";
 import { mintNft } from "@/offchain/mintNft";
-import { Address } from "@harmoniclabs/plu-ts";
+import { Address } from "@harmoniclabs/buildooor";
 import { BlockfrostPluts } from "@harmoniclabs/blockfrost-pluts";
 import { Emulator, initializeEmulator } from "@harmoniclabs/pluts-emulator";
 
