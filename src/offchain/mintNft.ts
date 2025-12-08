@@ -1,5 +1,5 @@
 import { BrowserWallet, IWallet } from "@meshsdk/core";
-import { Value, Address, Tx } from "@harmoniclabs/plu-ts";
+import { Value, Address, Tx } from "@harmoniclabs/buildooor";
 import { BlockfrostPluts } from "@harmoniclabs/blockfrost-pluts";
 import { scriptTestnetAddr, script } from "../../contracts/minting";
 import { vkeyWitnessFromSignData } from "./commons";

@@ -1,13 +1,33 @@
-import { Address, PScriptContext, ScriptType, Credential, Script, compile, pfn, unit, passert } from "@harmoniclabs/plu-ts";
+import { Compiler, createMemoryCompilerIoApi } from '@harmoniclabs/pebble';
+import { Script, ScriptType, Address, Credential } from "@harmoniclabs/buildooor";
+import { fromUtf8 } from "@harmoniclabs/uint8array-utils";
 
-const contract = pfn([
-  PScriptContext.type
-], unit)
-(({ redeemer, tx, purpose }) => {
-  return passert.$(true);
-});
+const CONTRACT_NAME = 'contracts/minting.pebble'
 
-export const compiledContract = compile(contract);
+const CONTRACT = `contract AllowAnyMint {
+    mint allowMintAndBurn() {
+        // no conditions: always succeed
+
+        assert true;
+    }
+}`
+
+async function compileContract(): Promise<Uint8Array> {
+  const ioApi = createMemoryCompilerIoApi({
+    sources: new Map([
+      [CONTRACT_NAME, fromUtf8(CONTRACT)],
+    ]),
+    useConsoleAsOutput: true,
+  });
+
+  const compiler = new Compiler(ioApi);
+
+  const compiled = await compiler.compile({ entry: CONTRACT_NAME });
+
+  return compiled || new Uint8Array();
+}
+
+export const compiledContract = await compileContract();
 
 export const script = new Script(
   ScriptType.PlutusV3,
@@ -15,6 +35,5 @@ export const script = new Script(
 );
 
 export const scriptTestnetAddr = new Address(
-  "testnet",
-  Credential.script(script.hash)
+  'testnet', Credential.script(script.hash),
 );
